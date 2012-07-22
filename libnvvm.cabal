@@ -1,7 +1,7 @@
 Name:               libnvvm
 Version:            0.0.1
 License:            OtherLicense
-License-file:       license.txt
+License-file:       LICENSE
 Author:             Sean Lee <selee@nvidia.com>
 Maintainer:         Sean Lee <selee@nvidia.com>
 Build-type:         Simple
