@@ -1,0 +1,26 @@
+Name:               libnvvm
+Version:            0.0.1
+License:            OtherLicense
+License-file:       license.txt
+Author:             Sean Lee <selee@nvidia.com>
+Maintainer:         Sean Lee <selee@nvidia.com>
+Build-type:         Simple
+Category:           Foreign
+Stability:          experimental
+Bug-reports:        mailto:selee@nvidia.com
+Cabal-version:      >= 1.10
+Tested-with:        GHC == 7.0.3
+Synopsis:           FFI binding to the libNVVM, a compiler SDK component from
+                    NVIDIA
+Description:        TO BE WRITTEN
+
+Library
+  Exposed-modules:  Foreign.LibNVVM.Error
+                    Foreign.LibNVVM.Type
+                    Foreign.LibNVVM.Compile
+  Includes:         nvvm.h
+  Extra-Libraries:  nvvm
+  GHC-options:      -Wall -O2 -fwarn-tabs
+  Build-tools:      c2hs
+  Build-depends:    base >= 4 && < 5
+  Default-language: Haskell2010
