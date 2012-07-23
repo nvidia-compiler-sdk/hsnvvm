@@ -9,8 +9,8 @@
 -- Portability : non-portable (GHC extensions)
 --
 module Foreign.LibNVVM (
-  module Foreign.LibNVVM.Compile
-  module Foreign.LibNVVM.Error
+  module Foreign.LibNVVM.Compile,
+  module Foreign.LibNVVM.Error,
   module Foreign.LibNVVM.Type
 ) where
 
