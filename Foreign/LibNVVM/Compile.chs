@@ -16,7 +16,8 @@ module Foreign.LibNVVM.Compile (
 #include <nvvm.h>
 
 import Control.Applicative (pure, (<$>))
-import Foreign.C.String (newCString, peekCString, withCStringLen)
+import Data.ByteString.Char8 (ByteString, packCString, useAsCStringLen)
+import Foreign.C.String (newCString)
 import Foreign.C.Types
 import Foreign.Marshal.Alloc (alloca, free)
 import Foreign.Marshal.Array (allocaArray, withArray)
@@ -50,8 +51,8 @@ destroy :: CompilationUnit -> IO ()
 destroy cu = with cu $ \cuptr ->
   toEC <$> {# call unsafe nvvmDestroyCU #} cuptr >>= flip checkError ()
 
-addModule :: CompilationUnit -> String -> IO ()
-addModule cu m = withCStringLen m $ \(m', size) ->
+addModule :: CompilationUnit -> ByteString -> IO ()
+addModule cu m = useAsCStringLen m $ \(m', size) ->
   fromIntegral <$> pure size >>= \size' ->
   toEC <$> {# call unsafe nvvmCUAddModule #} cu m' size' >>= \status ->
   checkError status ()
@@ -65,22 +66,22 @@ compile cu opts = mapM newCString opts >>= \opts' ->
     numOpts :: CInt
     numOpts = fromIntegral $ length opts
 
-getCompiledResult :: CompilationUnit -> IO String
+getCompiledResult :: CompilationUnit -> IO ByteString
 getCompiledResult cu = getCompiledResultSize >>= \size ->
   allocaArray size $ \result ->
   toEC <$> {# call unsafe nvvmGetCompiledResult #} cu result >>= \status ->
-  peekCString result >>= checkError status
+  packCString result >>= checkError status
   where
     getCompiledResultSize :: IO Int
     getCompiledResultSize = alloca $ \size ->
       toEC <$> {# call unsafe nvvmGetCompiledResultSize #} cu size >>= \status ->
       fromIntegral <$> peek size >>= checkError status
 
-getCompilationLog :: CompilationUnit -> IO String
+getCompilationLog :: CompilationUnit -> IO ByteString
 getCompilationLog cu = getCompilationLogSize >>= \size ->
   allocaArray size $ \result ->
   toEC <$> {# call unsafe nvvmGetCompilationLog #} cu result >>= \status ->
-  peekCString result >>= checkError status
+  packCString result >>= checkError status
   where
     getCompilationLogSize :: IO Int
     getCompilationLogSize = alloca $ \size ->
