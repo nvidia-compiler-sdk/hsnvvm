@@ -1,6 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 -- |
--- Module      : Foreign.LibNVVM.Compile
+-- Module      : Foreign.LibNVVM.Internal
 -- Copyright   : 2012 Sean Lee
 -- License     :
 --
@@ -8,7 +8,7 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
-module Foreign.LibNVVM.Compile (
+module Foreign.LibNVVM.Internal (
   initialize, finalize, version, create, destroy, addModule, compile,
   getCompiledResult, getCompilationLog
 ) where

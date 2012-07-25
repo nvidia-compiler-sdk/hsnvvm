@@ -17,19 +17,22 @@ Description:        TO BE WRITTEN
 Library
   Exposed-modules:  Foreign.LibNVVM.Error
                     Foreign.LibNVVM.Type
+                    Foreign.LibNVVM.Internal
                     Foreign.LibNVVM.Compile
                     Foreign.LibNVVM
   Includes:         nvvm.h
   Extra-Libraries:  nvvm
   GHC-options:      -Wall -O2 -fwarn-tabs
   Build-tools:      c2hs
-  Build-depends:    base >= 4 && < 5
+  Build-depends:    base >= 4 && < 5,
+                    bytestring >= 0.9
   Default-language: Haskell2010
 
 Test-suite test-simple
   Type:             exitcode-stdio-1.0
   GHC-options:      -Wall -O2 -fwarn-tabs
   Build-depends:    base >= 4 && < 5,
+                    bytestring >= 0.9,
                     libnvvm,
                     test-framework >= 0.2,
                     test-framework-hunit >= 0.2,
