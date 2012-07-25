@@ -1,12 +1,12 @@
 module Main (main) where
 
-import Data.Version
 import Foreign.LibNVVM.Internal
 import Foreign.LibNVVM
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test)
 
 import Control.Exception as E (bracket, catch, try)
+import Data.Version(Version(..))
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import qualified Paths_libnvvm as P
@@ -88,13 +88,12 @@ plInitializeFinalize =
 plVersion :: Assertion
 plVersion =
   E.catch (E.bracket initialize (const finalize) $ \_ ->
-           version >>= assertEqual "version mismatch" packageVersion)
+           version >>= compareAndAssert P.version)
           (\e -> False @? show (e :: LibNVVMException))
   where
-    packageVersion :: (Int, Int)
-    packageVersion =
-      let major:minor:_ = versionBranch P.version
-      in  (major, minor)
+    compareAndAssert :: Version -> Version -> Assertion
+    compareAndAssert x y =
+      (take 2 $ versionBranch x) @=? (take 2 $ versionBranch y)
 
 plCreateDestroyCompilationUnit :: Assertion
 plCreateDestroyCompilationUnit =
