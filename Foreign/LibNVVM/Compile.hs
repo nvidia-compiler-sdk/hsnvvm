@@ -1,5 +1,4 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE ScopedTypeVariables      #-}
 -- |
 -- Module      : Foreign.LibNVVM.Compile
 -- Copyright   : 2012 Sean Lee
