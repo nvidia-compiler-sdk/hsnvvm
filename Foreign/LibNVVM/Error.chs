@@ -10,7 +10,8 @@
 -- Portability : non-portable (GHC extensions)
 --
 module Foreign.LibNVVM.Error (
-  LibNVVMException(..), ErrorCode(..), toEC, checkError, checkCompileError
+  LibNVVMException(..), ErrorCode(..),
+  toErrorCode, checkError, checkCompileError
 ) where
 
 #include <nvvm.h>
@@ -40,8 +41,8 @@ instance Show LibNVVMException where
 -- |
 -- Coercion from integral types to 'ErrorCode'
 --
-toEC :: (Integral a) => a -> ErrorCode
-toEC = toEnum . fromIntegral
+toErrorCode :: (Integral a) => a -> ErrorCode
+toErrorCode = toEnum . fromIntegral
 
 -- |
 -- Raise an exception if there is an error of any kind. Otherwise, return the
