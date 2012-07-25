@@ -1,4 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE DeriveDataTypeable       #-}
 -- |
 -- Module      : Foreign.LibNVVM.Internal
 -- Copyright   : 2012 Sean Lee
@@ -20,13 +21,18 @@ module Foreign.LibNVVM.Internal (
   -- * Create, destroy, and manipulate compilation unit
   create, destroy, addModule,
   -- * Compile
-  compile, getCompiledResult, getCompilationLog
+  compile, getCompiledResult, getCompilationLog,
+  -- * libNVVM exception
+  LibNVVMException(..),
+  checkError, checkCompileError
 ) where
 
 #include <nvvm.h>
 
 import Control.Applicative (pure, (<$>))
+import Control.Exception (Exception, throwIO)
 import Data.ByteString.Char8 (ByteString, packCString, useAsCStringLen)
+import Data.Typeable (Typeable)
 import Data.Version (Version(..))
 import Foreign.C.String (newCString)
 import Foreign.C.Types
@@ -218,3 +224,29 @@ getCompilationLog cu = getCompilationLogSize >>= \size ->
     getCompilationLogSize = alloca $ \size ->
       toErrorCode <$> {# call unsafe nvvmGetCompilationLogSize #} cu size >>= \status ->
       fromIntegral <$> peek size >>= checkError status
+
+-- |
+-- 'LibNVVMException' lifts 'ErrorCode' into an exception.
+--
+data LibNVVMException = LibNVVMException ErrorCode
+                        deriving (Typeable, Show)
+
+instance Exception LibNVVMException
+
+-- |
+-- Raise a 'LibNVVMException' if there is an error of any kind. Otherwise,
+-- return the value.
+--
+checkError :: ErrorCode -> a -> IO a
+checkError Success a = return a
+checkError status  _ = throwIO $ LibNVVMException status
+
+-- |
+-- Return True on successful compilation. Return False if there is a
+-- compilation error, and raise a 'LibNVVMException' for other kinds of
+-- errors.
+--
+checkCompileError :: ErrorCode -> IO Bool
+checkCompileError Success          = return True
+checkCompileError ErrorCompilation = return False
+checkCompileError status           = throwIO $ LibNVVMException status
