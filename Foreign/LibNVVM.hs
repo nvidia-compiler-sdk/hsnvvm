@@ -11,9 +11,7 @@
 module Foreign.LibNVVM (
   module Foreign.LibNVVM.Compile,
   module Foreign.LibNVVM.Error,
-  module Foreign.LibNVVM.Type
 ) where
 
 import Foreign.LibNVVM.Compile
 import Foreign.LibNVVM.Error
-import Foreign.LibNVVM.Type

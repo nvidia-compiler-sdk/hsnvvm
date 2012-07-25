@@ -16,7 +16,6 @@ Description:        TO BE WRITTEN
 
 Library
   Exposed-modules:  Foreign.LibNVVM.Error
-                    Foreign.LibNVVM.Type
                     Foreign.LibNVVM.Internal
                     Foreign.LibNVVM.Compile
                     Foreign.LibNVVM

@@ -9,8 +9,16 @@
 -- Portability : non-portable (GHC extensions)
 --
 module Foreign.LibNVVM.Internal (
-  initialize, finalize, version, create, destroy, addModule, compile,
-  getCompiledResult, getCompilationLog
+  -- * libNVVM Compilation Unit
+  CompilationUnit,
+  -- * Initialize and finalize libNVVM
+  initialize, finalize,
+  -- * Query the libNVVM version number
+  version,
+  -- * Create, destroy, and manipulate compilation unit
+  create, destroy, addModule,
+  -- * Compile
+  compile, getCompiledResult, getCompilationLog
 ) where
 
 #include <nvvm.h>
@@ -26,8 +34,10 @@ import Foreign.Ptr (Ptr)
 import Foreign.Storable (peek)
 
 {# import Foreign.LibNVVM.Error #}
-{# import Foreign.LibNVVM.Type #}
 {# context lib = "nvvm" #}
+
+data NVVMCompilationUnit
+{# pointer nvvmCU as CompilationUnit -> NVVMCompilationUnit #}
 
 initialize :: IO ()
 initialize = toEC <$> {# call unsafe nvvmInit #} >>= flip checkError ()
