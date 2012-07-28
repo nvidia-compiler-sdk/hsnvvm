@@ -23,8 +23,7 @@ module Foreign.LibNVVM.Internal (
   -- * Compile
   compile, getCompiledResult, getCompilationLog,
   -- * libNVVM exception
-  LibNVVMException(..),
-  checkError, checkCompileError
+  LibNVVMException(..), checkError
 ) where
 
 #include <nvvm.h>
@@ -115,8 +114,8 @@ addModule :: CompilationUnit
           -> IO ()
 addModule cu m = useAsCStringLen m $ \(m', size) ->
   fromIntegral <$> pure size >>= \size' ->
-  toErrorCode <$> {# call unsafe nvvmCUAddModule #} cu m' size' >>= \status ->
-  checkError status ()
+  toErrorCode <$> {# call unsafe nvvmCUAddModule #} cu m' size' >>=
+  flip checkError ()
 
 -- |
 -- 'compile' compiles the NVVM IR modules that have been added to the
@@ -166,18 +165,23 @@ addModule cu m = useAsCStringLen m $ \(m', size) ->
 -- * passed a compilation unit with an NVVM IR module with an incompatible IR
 --   version,
 --
--- * passed a compilation unit without any NVVM IR module, or
+-- * passed a compilation unit without any NVVM IR module,
+--
+-- * passed a compilation unit with a NVVM IR module that has an error, or
 --
 -- * passed an unrecognized compiler option.
 --
+-- It also produces the PTX output that can be retrieved, using
+-- 'getCompiledResult' and the compilation log that can retrieved, using
+-- 'getCompilationLog'.
+--
 compile :: CompilationUnit
         -> [String]        -- ^ compiler options
-        -> IO Bool         -- ^ True if compilation succeeds and False
-                           --   otherwise
+        -> IO ()
 compile cu opts = mapM newCString opts >>= \opts' ->
   withArray opts' $ \opts'' ->
   toErrorCode <$> {# call unsafe nvvmCompileCU #} cu numOpts opts'' >>= \status ->
-  mapM_ free opts' >> checkCompileError status
+  mapM_ free opts' >>= checkError status
   where
     numOpts :: CInt
     numOpts = fromIntegral $ length opts
@@ -240,13 +244,3 @@ instance Exception LibNVVMException
 checkError :: ErrorCode -> a -> IO a
 checkError Success a = return a
 checkError status  _ = throwIO $ LibNVVMException status
-
--- |
--- Return True on successful compilation. Return False if there is a
--- compilation error, and raise a 'LibNVVMException' for other kinds of
--- errors.
---
-checkCompileError :: ErrorCode -> IO Bool
-checkCompileError Success          = return True
-checkCompileError ErrorCompilation = return False
-checkCompileError status           = throwIO $ LibNVVMException status

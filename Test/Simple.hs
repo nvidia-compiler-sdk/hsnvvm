@@ -5,7 +5,7 @@ import Foreign.LibNVVM
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit hiding (Test)
 
-import Control.Exception as E (bracket, catch, try)
+import Control.Exception as E (bracket, bracket_, catch)
 import Data.Version(Version(..))
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
@@ -56,8 +56,6 @@ tests = [ TF.testGroup "Positive tests"
                        nlVersion
             , testCase "create and destroy a compilation unit without initializing"
                        nlCreateDestroyCompilationUnit
-            --, testCase "destroy a compilation unit twice"
-            --           nlDestroyCompilationUnitTwice
             , testCase "compile HelloWorldWithError.ll"
                        nlCompileHelloWorldWithErrorLL
             , testCase "compile multiple .ll files with redefinitions"
@@ -82,14 +80,14 @@ tests = [ TF.testGroup "Positive tests"
 
 plInitializeFinalize :: Assertion
 plInitializeFinalize =
-  E.catch (E.bracket initialize (const finalize) return)
-          (\e -> False @? show (e :: LibNVVMException))
+  E.catch (E.bracket_ initialize finalize $ return ())
+          (\(LibNVVMException e) -> Success @=? e)
 
 plVersion :: Assertion
 plVersion =
-  E.catch (E.bracket initialize (const finalize) $ \_ ->
+  E.catch (E.bracket_ initialize finalize $
            version >>= compareAndAssert P.version)
-          (\e -> False @? show (e :: LibNVVMException))
+          (\(LibNVVMException e) -> Success @=? e)
   where
     compareAndAssert :: Version -> Version -> Assertion
     compareAndAssert x y =
@@ -97,72 +95,57 @@ plVersion =
 
 plCreateDestroyCompilationUnit :: Assertion
 plCreateDestroyCompilationUnit =
-  E.catch (E.bracket initialize (const finalize) $ \_ -> create >>= destroy)
-          (\e -> False @? show (e :: LibNVVMException))
+  E.catch (E.bracket_ initialize finalize $ create >>= destroy)
+          (\(LibNVVMException e) -> Success @=? e)
 
 plCompileHelloWorldLL :: Assertion
 plCompileHelloWorldLL =
-  E.catch (E.bracket initialize (const finalize) $ \_ ->
-           E.bracket create destroy $ \cu ->
-           B8.readFile "Test/data/HelloWorld.ll" >>= \ll ->
-           addModule cu ll >> compile cu [] >>= \result ->
-           if result
-           then getCompiledResult cu >> return ()
-           else Success @=? ErrorCompilation)
-          (\e -> False @? show (e :: LibNVVMException))
+  E.catch (E.bracket_ initialize finalize $
+           E.bracket  create     destroy  $ \cu ->
+           B8.readFile "Test/data/HelloWorld.ll" >>= addModule cu >>
+           compile cu [] >> getCompiledResult cu >> return ())
+          (\(LibNVVMException e) -> Success @=? e)
 
 plCompileHelloWorldBC :: Assertion
 plCompileHelloWorldBC =
-  E.catch (E.bracket initialize (const finalize) $ \_ ->
-           E.bracket create destroy $ \cu ->
-           B.readFile "Test/data/HelloWorld.bc" >>= \bc ->
-           addModule cu bc >> compile cu [] >>= \result ->
-           if result
-           then getCompiledResult cu >> return ()
-           else Success @=? ErrorCompilation)
-          (\e -> False @? show (e :: LibNVVMException))
+  E.catch (E.bracket_ initialize finalize $
+           E.bracket  create     destroy  $ \cu ->
+           B.readFile "Test/data/HelloWorld.bc" >>= addModule cu >>
+           compile cu [] >> getCompiledResult cu >> return ())
+          (\(LibNVVMException e) -> Success @=? e)
 
 plCompileMultipleLL :: Assertion
 plCompileMultipleLL =
-  E.catch (E.bracket initialize (const finalize) $ \_ ->
-           E.bracket create destroy $ \cu ->
+  E.catch (E.bracket_ initialize finalize $
+           E.bracket  create     destroy  $ \cu ->
            B8.readFile "Test/data/HelloWorld0.ll" >>= addModule cu >>
            B8.readFile "Test/data/HelloWorld1.ll" >>= addModule cu >>
            B8.readFile "Test/data/HelloWorld2.ll" >>= addModule cu >>
            B8.readFile "Test/data/HelloWorld3.ll" >>= addModule cu >>
-           compile cu [] >>= \result ->
-           if result
-           then getCompiledResult cu >> return ()
-           else Success @=? ErrorCompilation)
-          (\e -> False @? show (e :: LibNVVMException))
+           compile cu [] >> getCompiledResult cu >> return ())
+          (\(LibNVVMException e) -> Success @=? e)
 
 plCompileMultipleBC :: Assertion
 plCompileMultipleBC =
-  E.catch (E.bracket initialize (const finalize) $ \_ ->
-           E.bracket create destroy $ \cu ->
+  E.catch (E.bracket_ initialize finalize $
+           E.bracket  create     destroy  $ \cu ->
            B.readFile "Test/data/HelloWorld0.bc" >>= addModule cu >>
            B.readFile "Test/data/HelloWorld1.bc" >>= addModule cu >>
            B.readFile "Test/data/HelloWorld2.bc" >>= addModule cu >>
            B.readFile "Test/data/HelloWorld3.bc" >>= addModule cu >>
-           compile cu [] >>= \result ->
-           if result
-           then getCompiledResult cu >> return ()
-           else Success @=? ErrorCompilation)
-          (\e -> False @? show (e :: LibNVVMException))
+           compile cu [] >> getCompiledResult cu >> return ())
+          (\(LibNVVMException e) -> Success @=? e)
 
 plCompileMultipleLLBC :: Assertion
 plCompileMultipleLLBC =
-  E.catch (E.bracket initialize (const finalize) $ \_ ->
-           E.bracket create destroy $ \cu ->
+  E.catch (E.bracket_ initialize finalize $
+           E.bracket  create     destroy  $ \cu ->
            B8.readFile "Test/data/HelloWorld0.ll" >>= addModule cu >>
            B.readFile  "Test/data/HelloWorld1.bc" >>= addModule cu >>
            B8.readFile "Test/data/HelloWorld2.ll" >>= addModule cu >>
            B.readFile  "Test/data/HelloWorld3.bc" >>= addModule cu >>
-           compile cu [] >>= \result ->
-           if result
-           then getCompiledResult cu >> return ()
-           else Success @=? ErrorCompilation)
-          (\e -> False @? show (e :: LibNVVMException))
+           compile cu [] >> getCompiledResult cu >> return ())
+          (\(LibNVVMException e) -> Success @=? e)
 
 phCompileHelloWorldLL :: Assertion
 phCompileHelloWorldLL =
@@ -200,69 +183,53 @@ phCompileMultipleLLBC =
 
 nlFinalize :: Assertion
 nlFinalize =
-  E.try finalize >>= \x -> case x of
-    Right _                    -> ErrorNotInitialized @=? Success
-    Left  (LibNVVMException e) -> ErrorNotInitialized @=? e
+  E.catch finalize $
+    \(LibNVVMException e) -> ErrorNotInitialized @=? e
 
 nlVersion :: Assertion
 nlVersion =
-  E.try version >>= \x -> case x of
-    Right _                    -> ErrorNotInitialized @=? Success
-    Left  (LibNVVMException e) -> ErrorNotInitialized @=? e
+  E.catch (version >> return ()) $
+    \(LibNVVMException e) -> ErrorNotInitialized @=? e
 
 nlCreateDestroyCompilationUnit :: Assertion
 nlCreateDestroyCompilationUnit =
-  E.try (create >>= destroy) >>= \x -> case x of
-    Right _                    -> ErrorNotInitialized @=? Success
-    Left  (LibNVVMException e) -> ErrorNotInitialized @=? e
-
-{-
-nlDestroyCompilationUnitTwice :: Assertion
-nlDestroyCompilationUnitTwice =
-  E.try (E.bracket initialize (const finalize) $ \_ ->
-         E.bracket create destroy destroy) >>= \x -> case x of
-    Right _                    -> ErrorInvalidCu @=? Success
-    Left  (LibNVVMException e) -> ErrorInvalidCu @=? e
--}
+  E.catch (create >>= destroy) $
+    \(LibNVVMException e) -> ErrorNotInitialized @=? e
 
 nlCompileHelloWorldWithErrorLL :: Assertion
 nlCompileHelloWorldWithErrorLL =
-  E.catch (E.bracket initialize (const finalize) $ \_ ->
-           E.bracket create destroy $ \cu ->
+  E.catch (E.bracket_ initialize finalize $
+           E.bracket  create     destroy  $ \cu ->
            B8.readFile "Test/data/HelloWorldWithError.ll" >>= \ll ->
-           addModule cu ll >> compile cu [] >>= \result ->
-           if result then ErrorCompilation @=? Success else return ())
-          (\e -> False @? show (e :: LibNVVMException))
+           addModule cu ll >> compile cu [])
+          (\(LibNVVMException e) -> ErrorCompilation @=? e)
 
 nlCompileMultipleLL :: Assertion
 nlCompileMultipleLL =
-  E.catch (E.bracket initialize (const finalize) $ \_ ->
-           E.bracket create destroy $ \cu ->
+  E.catch (E.bracket_ initialize finalize $
+           E.bracket  create     destroy  $ \cu ->
            B8.readFile "Test/data/HelloWorld.ll" >>= addModule cu >>
            B8.readFile "Test/data/HelloWorld.ll" >>= addModule cu >>
-           compile cu [] >>= \result ->
-           if result then Success @=? ErrorCompilation else return ())
-          (\e -> False @? show (e :: LibNVVMException))
+           compile cu [])
+          (\(LibNVVMException e) -> ErrorCompilation @=? e)
 
 nlCompileMultipleBC :: Assertion
 nlCompileMultipleBC =
-  E.catch (E.bracket initialize (const finalize) $ \_ ->
-           E.bracket create destroy $ \cu ->
+  E.catch (E.bracket_ initialize finalize $
+           E.bracket  create     destroy  $ \cu ->
            B.readFile "Test/data/HelloWorld.bc" >>= addModule cu >>
            B.readFile "Test/data/HelloWorld.bc" >>= addModule cu >>
-           compile cu [] >>= \result ->
-           if result then Success @=? ErrorCompilation else return ())
-          (\e -> False @? show (e :: LibNVVMException))
+           compile cu [])
+          (\(LibNVVMException e) -> ErrorCompilation @=? e)
 
 nlCompileMultipleLLBC :: Assertion
 nlCompileMultipleLLBC =
-  E.catch (E.bracket initialize (const finalize) $ \_ ->
-           E.bracket create destroy $ \cu ->
+  E.catch (E.bracket_ initialize finalize $
+           E.bracket  create     destroy  $ \cu ->
            B8.readFile "Test/data/HelloWorld.ll" >>= addModule cu >>
            B.readFile  "Test/data/HelloWorld.bc" >>= addModule cu >>
-           compile cu [] >>= \result ->
-           if result then Success @=? ErrorCompilation else return ())
-          (\e -> False @? show (e :: LibNVVMException))
+           compile cu [])
+          (\(LibNVVMException e) -> ErrorCompilation @=? e)
 
 nhCompileHelloWorldWithErrorLL :: Assertion
 nhCompileHelloWorldWithErrorLL =
