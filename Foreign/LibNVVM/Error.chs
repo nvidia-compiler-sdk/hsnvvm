@@ -17,14 +17,15 @@ module Foreign.LibNVVM.Error (
 
 {# context lib = "nvvm" #}
 
---
--- Error Code
+-- |
+-- The type 'ErrorCode' is an enumeration whose values represent the status of
+-- the last libNVVM operation.
 --
 {# enum nvvmResult as ErrorCode {underscoreToCase}
                    with prefix="NVVM" deriving (Eq, Show) #}
 
 -- |
--- Coercion from integral types to 'ErrorCode'
+-- Coercion from an integral type to 'ErrorCode'
 --
 toErrorCode :: (Integral a) => a -> ErrorCode
 toErrorCode = toEnum . fromIntegral
