@@ -1,4 +1,3 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
 -- |
 -- Module      : Foreign.LibNVVM.Compile
 -- Copyright   : 2012 Sean Lee

@@ -16,9 +16,9 @@ Description:        TO BE WRITTEN
 
 Library
   Exposed-modules:  Foreign.LibNVVM.Error
-                    Foreign.LibNVVM.Internal
                     Foreign.LibNVVM.Compile
                     Foreign.LibNVVM
+  Other-modules:    Foreign.LibNVVM.Internal
   Includes:         nvvm.h
   Extra-Libraries:  nvvm
   GHC-options:      -Wall -O2 -fwarn-tabs
@@ -38,4 +38,5 @@ Test-suite test-simple
                     Cabal >= 1.10.1,
                     HUnit >= 1.2
   Default-language: Haskell2010
-  Main-is:          Test/Simple.hs
+  Main-is:          Simple.hs
+  hs-source-dirs:   Test
