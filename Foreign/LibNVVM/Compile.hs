@@ -9,29 +9,33 @@
 --
 module Foreign.LibNVVM.Compile (
   -- * Compilation result
-  Result (..),
+  Result (..), compilationLog,
   -- * Compilation
   compileModule, compileModules
 ) where
 
+import Prelude hiding (log)
 import Data.ByteString
 import Foreign.LibNVVM.Error
 import Foreign.LibNVVM.Internal
 
-import qualified Control.Exception as E (bracket, bracket_, catch, try)
+import qualified Control.Exception as E (bracket, catch, try)
 
 -- |
 -- The functions 'compileModule' and 'compileModules' return 'Result' that
 -- contains the 'ErrorCode' for the compilation, the compilation log, and the
 -- compiled result.
 --
--- It is to be noted that, even upon the successful compilation,
--- 'compilationLog' may not be empty. It may contain some advisory messages
--- and warnings.
+data Result = Result ByteString (Either ErrorCode ByteString)
+
+-- |
+-- Retrieve any compilation or verifier messages and warnings generated from
+-- compiling the NVVM modules. Note that even upon successful compilation, the
+-- log may be not be empty.
 --
-data Result = Result {errorCode      :: ErrorCode,
-                      compilationLog :: ByteString,
-                      ptx            :: ByteString}
+compilationLog :: Result -> ByteString
+compilationLog (Result log _) = log
+
 
 -- |
 -- The function 'compileModule' compiles an NVVM IR module, according to the
@@ -77,34 +81,39 @@ data Result = Result {errorCode      :: ErrorCode,
 --
 compileModule :: ByteString -- ^ an NVVM IR module either in the bitcode
                             --   representation or in the text representation
+              -> String     -- ^ name of the NVVM IR module
               -> [String]   -- ^ compiler options
               -> IO Result
-compileModule m = compileModules [m]
+compileModule m n = compileModules [(m,n)]
 
 
 -- |
 -- The function 'compileModules' compiles and links multiple NVVM IR modules,
 -- according to the specified options, and returns the compilation log and the
 -- compiled result.
--- compilation log.
 --
 -- Each NVVM IR module can be either in the bitcode representation or in the
 -- text representation. The compiled result is represented in PTX.
 --
 -- See 'compileModule' for the valid compiler options.
 --
-compileModules :: [ByteString] -- ^ NVVM IR modules either in the bitcode
-                               --   representation or in the text
-                               --   representation
-               -> [String]     -- ^ compiler options
-               -> IO Result
+compileModules
+    :: [(ByteString, String)]   -- ^ NVVM IR modules either in the bitcode
+                                --   or text representation, together with the
+                                --   module name
+    -> [String]                 -- ^ compiler options
+    -> IO Result
 compileModules ms options =
-  E.catch (E.bracket_ initialize finalize $
-           E.bracket  create     destroy  $ \cu ->
-           E.try (mapM_ (addModule cu) ms >>
-                  compile cu options >>
-                  getCompiledResult cu) >>= \p ->
-           getCompilationLog cu >>= \compLog -> return $ case p of
-           Right p'                   -> Result Success compLog p'
-           Left  (LibNVVMException e) -> Result e compLog empty)
-          (\(LibNVVMException e) -> return $ Result e empty empty)
+  E.bracket create destroy $ \prog -> do
+    res <- E.try $ do
+              mapM_ (uncurry $ addModule prog) ms
+              compile prog options
+              getCompiledResult prog
+    --
+    log <- getProgramLog prog
+    return $ case res of
+      Right p'                   -> Result log (Right p')
+      Left  (LibNVVMException e) -> Result log (Left e)
+  `E.catch`
+    \(LibNVVMException e) -> return $ Result empty (Left e)
+

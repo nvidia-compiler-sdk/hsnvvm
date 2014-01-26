@@ -12,24 +12,29 @@
 -- This module provides (almost) one-to-one mapping between libNVVM and
 -- Haskell.
 module Foreign.LibNVVM.Internal (
-  -- * libNVVM Compilation Unit
-  CompilationUnit,
-  -- * Initialize and finalize libNVVM
-  initialize, finalize,
+
+  -- * libNVVM Program
+  Program,
+
   -- * Query the libNVVM version number
   version,
+
   -- * Create, destroy, and manipulate compilation unit
   create, destroy, addModule,
+
   -- * Compile
-  compile, getCompiledResult, getCompilationLog,
+  compile, getCompiledResult, getProgramLog,
+
   -- * libNVVM exception
   LibNVVMException(..), checkError
+
 ) where
 
 #include <nvvm.h>
 
-import Control.Applicative (pure, (<$>))
+import Control.Applicative ((<$>))
 import Control.Exception (Exception, throwIO)
+import Control.Monad (unless)
 import Data.ByteString.Char8 (ByteString, packCString, useAsCStringLen)
 import Data.Typeable (Typeable)
 import Data.Version (Version(..))
@@ -38,32 +43,16 @@ import Foreign.C.Types
 import Foreign.Marshal.Alloc (alloca, free)
 import Foreign.Marshal.Array (allocaArray, withArray)
 import Foreign.Marshal.Utils (with)
-import Foreign.Ptr (Ptr)
+import Foreign.Ptr (Ptr, nullPtr)
 import Foreign.Storable (peek)
 
 {# import Foreign.LibNVVM.Error #}
 {# context lib = "nvvm" #}
-{# pointer nvvmCU as CompilationUnit #}
+{# pointer nvvmProgram as Program #}
+
 
 -- |
--- 'initialize' must be called before any of the other libnvvm API functions
--- can be called. Otherwise, it raises a 'LibNVVMException'.
---
-initialize :: IO ()
-initialize = toErrorCode <$> {# call unsafe nvvmInit #} >>= flip checkError ()
-
--- |
--- 'finalize' releases the resource held by libNVVM. Once it is called, no
--- other libNVVM API functions can be called, unless libNVVM is initialized
--- again with 'initialize'.
---
-finalize :: IO ()
-finalize = toErrorCode <$> {# call unsafe nvvmFini #} >>= flip checkError ()
-
--- |
--- 'version' returns the libNVVM version number.
---
--- It raises a 'LibNVVMException', if it is called before 'initialize'.
+-- Returns the libNVVM version number.
 --
 version :: IO Version
 version = alloca $ \major -> alloca $ \minor ->
@@ -73,49 +62,48 @@ version = alloca $ \major -> alloca $ \minor ->
   checkError status $ Version [major', minor'] []
 
 -- |
--- 'create' creates a compilation unit, which is a handle used by 'destroy',
--- 'addModule', 'compile', 'getCompiledResult', and 'getCompilationLog'.
+-- 'create' creates a program compilation unit, which is a handle used by
+-- 'destroy', 'addModule', 'compile', 'getCompiledResult', and 'getProgramLog'.
 --
--- It raises a 'LibNVVMException', if it is called before 'initialize'.
---
-create :: IO CompilationUnit
+create :: IO Program
 create = alloca $ \cuptr ->
-  toErrorCode <$> {# call unsafe nvvmCreateCU #} cuptr >>= \status ->
+  toErrorCode <$> {# call unsafe nvvmCreateProgram #} cuptr >>= \status ->
   peek cuptr >>= checkError status
 
 -- |
--- 'destroy' destroys the given compilation unit.
+-- 'destroy' destroys the given program compilation unit.
 --
--- It raises a 'LibNVVMException', if it is
+-- It raises a 'LibNVVMException', if it is passed an invalid program
+-- compilation unit.
 --
--- * called before 'initialize', or
---
--- * passed an invalid compilation unit.
---
-destroy :: CompilationUnit -> IO ()
+destroy :: Program -> IO ()
 destroy cu = with cu $ \cuptr ->
-  toErrorCode <$> {# call unsafe nvvmDestroyCU #} cuptr >>= flip checkError ()
+  toErrorCode <$> {# call unsafe nvvmDestroyProgram #} cuptr >>= flip checkError ()
 
 -- |
--- 'addModule' adds a module level NVVM IR to the given compilation unit.
+-- 'addModule' adds a module level NVVM IR to the given program compilation unit.
 --
--- It raises a 'LibNVVMException', if it is
+-- It raises a 'LibNVVMException', if it is:
 --
--- * called before 'initialize',
---
--- * passed an invalid compilation unit, or
+-- * passed an invalid compilation unit; or
 --
 -- * passed an invalid NVVM module IR.
 --
-addModule :: CompilationUnit
+addModule :: Program
           -> ByteString      -- ^ an NVVM module IR either in the bitcode
                              --   representation or in the text
                              --   representation.
+          -> String          -- ^ name of the NVVM IR module
           -> IO ()
-addModule cu m = useAsCStringLen m $ \(m', size) ->
-  fromIntegral <$> pure size >>= \size' ->
-  toErrorCode <$> {# call unsafe nvvmCUAddModule #} cu m' size' >>=
-  flip checkError ()
+addModule prog m name = do
+  name' <- if null name
+              then return nullPtr       -- defaults to "<unnamed>"
+              else newCString name
+  --
+  useAsCStringLen m $ \(m', size) -> do
+    res <- {# call unsafe nvvmAddModuleToProgram #} prog m' (fromIntegral size) name'
+    unless (null name) (free name')
+    checkError (toErrorCode res) ()
 
 -- |
 -- 'compile' compiles the NVVM IR modules that have been added to the
@@ -173,14 +161,14 @@ addModule cu m = useAsCStringLen m $ \(m', size) ->
 --
 -- It also produces the PTX output that can be retrieved, using
 -- 'getCompiledResult' and the compilation log that can retrieved, using
--- 'getCompilationLog'.
+-- 'getProgramLog'.
 --
-compile :: CompilationUnit
+compile :: Program
         -> [String]        -- ^ compiler options
         -> IO ()
 compile cu opts = mapM newCString opts >>= \opts' ->
   withArray opts' $ \opts'' ->
-  toErrorCode <$> {# call unsafe nvvmCompileCU #} cu numOpts opts'' >>= \status ->
+  toErrorCode <$> {# call unsafe nvvmCompileProgram #} cu numOpts opts'' >>= \status ->
   mapM_ free opts' >>= checkError status
   where
     numOpts :: CInt
@@ -196,7 +184,7 @@ compile cu opts = mapM newCString opts >>= \opts' ->
 --
 -- * passed an invalid compilation unit,
 --
-getCompiledResult :: CompilationUnit
+getCompiledResult :: Program
                   -> IO ByteString   -- ^ PTX output generated by 'compile'
 getCompiledResult cu = getCompiledResultSize >>= \size ->
   allocaArray size $ \result ->
@@ -209,7 +197,7 @@ getCompiledResult cu = getCompiledResultSize >>= \size ->
       fromIntegral <$> peek size >>= checkError status
 
 -- |
--- 'getCompilationLog' returns the 'ByteString' that contains the compilation
+-- 'getProgramLog' returns the 'ByteString' that contains the compilation
 -- log generated by 'compile'.
 --
 -- It raises a 'LibNVVMException', if it is
@@ -218,15 +206,15 @@ getCompiledResult cu = getCompiledResultSize >>= \size ->
 --
 -- * passed an invalid compilation unit,
 --
-getCompilationLog :: CompilationUnit -> IO ByteString
-getCompilationLog cu = getCompilationLogSize >>= \size ->
+getProgramLog :: Program -> IO ByteString
+getProgramLog cu = getProgramLogSize >>= \size ->
   allocaArray size $ \result ->
-  toErrorCode <$> {# call unsafe nvvmGetCompilationLog #} cu result >>= \status ->
+  toErrorCode <$> {# call unsafe nvvmGetProgramLog #} cu result >>= \status ->
   packCString result >>= checkError status
   where
-    getCompilationLogSize :: IO Int
-    getCompilationLogSize = alloca $ \size ->
-      toErrorCode <$> {# call unsafe nvvmGetCompilationLogSize #} cu size >>= \status ->
+    getProgramLogSize :: IO Int
+    getProgramLogSize = alloca $ \size ->
+      toErrorCode <$> {# call unsafe nvvmGetProgramLogSize #} cu size >>= \status ->
       fromIntegral <$> peek size >>= checkError status
 
 -- |
@@ -244,3 +232,4 @@ instance Exception LibNVVMException
 checkError :: ErrorCode -> a -> IO a
 checkError Success a = return a
 checkError status  _ = throwIO $ LibNVVMException status
+

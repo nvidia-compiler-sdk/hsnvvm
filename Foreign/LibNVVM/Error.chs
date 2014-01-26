@@ -29,3 +29,4 @@ module Foreign.LibNVVM.Error (
 --
 toErrorCode :: (Integral a) => a -> ErrorCode
 toErrorCode = toEnum . fromIntegral
+
