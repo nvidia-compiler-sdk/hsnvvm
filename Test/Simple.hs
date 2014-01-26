@@ -36,59 +36,91 @@ tests = [ TF.testGroup "Positive tests"
           ]
         ]
 
+-- Positive tests
+-- --------------
+
+assertSuccess :: Result -> Assertion
+assertSuccess (Result _ (Right _)) = return ()
+assertSuccess (Result _ (Left e))  = assertFailure (show e)
+
+
 pCompileHelloWorldLL :: Assertion
-pCompileHelloWorldLL =
-  B8.readFile "Test/data/HelloWorld.ll" >>= \ll ->
-  compileModule ll [] >>= (Success @=?) . errorCode
+pCompileHelloWorldLL = do
+  ll <- B8.readFile "Test/data/HelloWorld.ll"
+  r  <- compileModule ll "compileLL" []
+  assertSuccess r
 
 pCompileHelloWorldBC :: Assertion
-pCompileHelloWorldBC =
-  B.readFile "Test/data/HelloWorld.bc" >>= \bc ->
-  compileModule bc [] >>= (Success @=?) . errorCode
+pCompileHelloWorldBC = do
+  bc <- B.readFile "Test/data/HelloWorld.bc"
+  assertSuccess =<< compileModule bc "compileBC" []
 
 pCompileMultipleLL :: Assertion
-pCompileMultipleLL =
-  sequence [ B8.readFile "Test/data/HelloWorld0.ll"
-           , B8.readFile "Test/data/HelloWorld1.ll"
-           , B8.readFile "Test/data/HelloWorld2.ll"
-           , B8.readFile "Test/data/HelloWorld3.ll"
-           ] >>= flip compileModules [] >>= (Success @=?) . errorCode
+pCompileMultipleLL = do
+  lls <- mapM B8.readFile [ "Test/data/HelloWorld0.ll"
+                          , "Test/data/HelloWorld1.ll"
+                          , "Test/data/HelloWorld2.ll"
+                          , "Test/data/HelloWorld3.ll"
+                          ]
+  r   <- compileModules (zip lls (repeat "compileMultipleLL")) []
+  assertSuccess r
 
 pCompileMultipleBC :: Assertion
-pCompileMultipleBC =
-  sequence [ B.readFile "Test/data/HelloWorld0.ll"
-           , B.readFile "Test/data/HelloWorld1.ll"
-           , B.readFile "Test/data/HelloWorld2.ll"
-           , B.readFile "Test/data/HelloWorld3.ll"
-           ] >>= flip compileModules [] >>= (Success @=?) . errorCode
+pCompileMultipleBC = do
+  bcs <- mapM B.readFile [ "Test/data/HelloWorld0.bc"
+                         , "Test/data/HelloWorld1.bc"
+                         , "Test/data/HelloWorld2.bc"
+                         , "Test/data/HelloWorld3.bc"
+                         ]
+  r   <- compileModules (zip bcs (repeat "compileMultipleBC")) []
+  assertSuccess r
 
 pCompileMultipleLLBC :: Assertion
-pCompileMultipleLLBC =
-  sequence [ B8.readFile "Test/data/HelloWorld0.ll"
-           , B.readFile  "Test/data/HelloWorld1.bc"
-           , B8.readFile "Test/data/HelloWorld2.ll"
-           , B.readFile  "Test/data/HelloWorld3.bc"
-           ] >>= flip compileModules [] >>= (Success @=?) . errorCode
+pCompileMultipleLLBC = do
+  llbcs <- sequence [ B8.readFile "Test/data/HelloWorld0.ll"
+                    , B.readFile  "Test/data/HelloWorld1.bc"
+                    , B8.readFile "Test/data/HelloWorld2.ll"
+                    , B.readFile  "Test/data/HelloWorld3.bc"
+                    ]
+  r     <- compileModules (zip llbcs (repeat "compileMultipleLLBC")) []
+  assertSuccess r
+
+
+-- Negative tests
+-- --------------
+
+assertError :: Result -> Assertion
+assertError (Result _ (Left ErrorCompilation)) = return ()
+assertError (Result _ (Left e))                = ErrorCompilation @=? e
+assertError (Result _ (Right _))               = ErrorCompilation @=? Success
 
 nCompileHelloWorldWithErrorLL :: Assertion
-nCompileHelloWorldWithErrorLL =
-  B8.readFile "Test/data/HelloWorldWithError.ll" >>=
-  flip compileModule [] >>= (ErrorCompilation @=?) . errorCode
+nCompileHelloWorldWithErrorLL = do
+  ll <- B8.readFile "Test/data/HelloWorldWithError.ll"
+  r  <- compileModule ll "errorLL" []
+  assertError r
 
 nCompileMultipleLL :: Assertion
-nCompileMultipleLL =
-  sequence [ B8.readFile "Test/data/HelloWorld.ll"
-           , B8.readFile "Test/data/HelloWorld.ll"
-           ] >>= flip compileModules [] >>= (ErrorCompilation @=?) . errorCode
+nCompileMultipleLL = do
+  lls <- mapM B8.readFile [ "Test/data/HelloWorld.ll"
+                          , "Test/data/HelloWorld.ll"
+                          ]
+  r   <- compileModules (zip lls (repeat "errorMultipleLL")) []
+  assertError r
 
 nCompileMultipleBC :: Assertion
-nCompileMultipleBC =
-  sequence [ B.readFile "Test/data/HelloWorld.bc"
-           , B.readFile "Test/data/HelloWorld.bc"
-           ] >>= flip compileModules [] >>= (ErrorCompilation @=?) . errorCode
+nCompileMultipleBC = do
+  bcs <- mapM B.readFile [ "Test/data/HelloWorld.bc"
+                         , "Test/data/HelloWorld.bc"
+                         ]
+  r   <- compileModules (zip bcs (repeat "errorMultipleBC")) [] 
+  assertError r
 
 nCompileMultipleLLBC :: Assertion
-nCompileMultipleLLBC =
-  sequence [ B8.readFile "Test/data/HelloWorld.ll"
-           , B.readFile  "Test/data/HelloWorld.bc"
-           ] >>= flip compileModules [] >>= (ErrorCompilation @=?) . errorCode
+nCompileMultipleLLBC = do
+  llbcs <- sequence [ B8.readFile "Test/data/HelloWorld.ll"
+                    , B.readFile  "Test/data/HelloWorld.bc"
+                    ]
+  r     <- compileModules (zip llbcs (repeat "errorMultipleLLBC")) []
+  assertError r
+
