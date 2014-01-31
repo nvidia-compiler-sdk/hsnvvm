@@ -43,3 +43,18 @@ Test-suite test-simple
   Main-is:          Simple.hs
   hs-source-dirs:   Test/simple
 
+Test-suite test-llvmgen
+  Type:             exitcode-stdio-1.0
+  GHC-options:      -Wall -O2 -fwarn-tabs
+  Build-depends:    base >= 4 && < 5,
+                    bytestring,
+                    containers,
+                    cuda >= 0.5,
+                    libnvvm,
+                    llvm-general == 3.2.*,
+                    llvm-general-pure == 3.2.*,
+                    mtl
+  Default-language: Haskell2010
+  Main-is:          LLVMGen.hs
+  hs-source-dirs:   Test/llvm-gen
+

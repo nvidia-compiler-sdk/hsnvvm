@@ -1,0 +1,33 @@
+--- a/llvm-general-pure/src/LLVM/General/DataLayout.hs
++++ b/llvm-general-pure/src/LLVM/General/DataLayout.hs
+@@ -6,6 +6,7 @@ module LLVM.General.DataLayout (
+ import Control.Applicative
+ 
+ import Data.Word
++import Data.Function
+ 
+ import qualified Data.List as List
+ import qualified Data.Map as Map
+@@ -26,6 +27,13 @@ dataLayoutToString dl =
+                     FloatAlign -> "f"
+                     AggregateAlign -> "a"
+                     StackAlign -> "s"
++
++      nvvmHack ((i,_),_) ((j,_),_) =
++        case (atChar i, atChar j) of
++          ("i","f")     -> LT
++          ("f","i")     -> GT
++          (x,y)         -> compare x y
++
+   in
+   List.intercalate "-" (
+     (case endianness dl of Just BigEndian -> ["E"]; Just LittleEndian -> ["e"]; _ -> [])
+@@ -34,7 +42,7 @@ dataLayoutToString dl =
+     ++
+     [ "p" ++ (if a == 0 then "" else show a) ++ ":" ++ sTriple t | (AddrSpace a, t) <- Map.toList . pointerLayouts $ dl]
+     ++
+-    [ atChar at ++ sTriple (s, ai) | ((at, s), ai) <- Map.toList . typeLayouts $ dl ]
++    [ atChar at ++ sTriple (s, ai) | ((at, s), ai) <- List.sortBy nvvmHack . Map.toList . typeLayouts $ dl ]
+     ++ 
+     (maybe [] (\ns -> ["n" ++ (List.intercalate ":" (map show . Set.toList $ ns))]) (nativeSizes dl))
+   )
