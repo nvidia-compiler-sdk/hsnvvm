@@ -41,4 +41,5 @@ Test-suite test-simple
                     HUnit >= 1.2
   Default-language: Haskell2010
   Main-is:          Simple.hs
-  hs-source-dirs:   Test
+  hs-source-dirs:   Test/simple
+
