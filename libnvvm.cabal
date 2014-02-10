@@ -56,5 +56,6 @@ Test-suite test-llvmgen
                     mtl
   Default-language: Haskell2010
   Main-is:          LLVMGen.hs
+  Other-modules:    HelloWorld
   hs-source-dirs:   Test/llvm-gen
 
