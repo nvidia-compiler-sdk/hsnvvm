@@ -4,15 +4,22 @@ License:            OtherLicense
 License-file:       LICENSE
 Author:             Sean Lee <selee@nvidia.com>
 Maintainer:         Sean Lee <selee@nvidia.com>
-Build-type:         Simple
+Build-type:         Custom
 Category:           Foreign
 Stability:          experimental
 Bug-reports:        mailto:selee@nvidia.com
 Cabal-version:      >= 1.10
 Tested-with:        GHC == 7.0.3
-Synopsis:           FFI binding to the libNVVM, a compiler SDK component from
-                    NVIDIA
-Description:        TO BE WRITTEN
+Synopsis:           FFI binding to libNVVM, a compiler SDK component from NVIDIA
+Description:        FFI binding to libNVVM, a compiler SDK component from NVIDIA
+
+Extra-tmp-files:    libnvvm.buildinfo config.status config.log
+Extra-source-files: configure
+                    configure.ac
+                    config.guess
+                    config.sub
+                    install-sh
+                    libnvvm.buildinfo.in
 
 Library
   Exposed-modules:  Foreign.LibNVVM.Error

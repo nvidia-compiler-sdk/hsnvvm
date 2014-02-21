@@ -1,0 +1,3 @@
+cc-options: @nvvm_ccflags@
+ld-options: @nvvm_ldflags@
+extra-lib-dirs: @nvvm_lib_path@
