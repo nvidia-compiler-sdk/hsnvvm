@@ -13,7 +13,11 @@ Tested-with:        GHC == 7.0.3
 Synopsis:           FFI binding to libNVVM, a compiler SDK component from NVIDIA
 Description:        FFI binding to libNVVM, a compiler SDK component from NVIDIA
 
-Extra-tmp-files:    libnvvm.buildinfo config.status config.log
+Extra-tmp-files:    libnvvm.buildinfo
+                    config.status
+                    config.log
+                    autom4te.cache
+
 Extra-source-files: configure
                     configure.ac
                     config.guess
@@ -22,19 +26,27 @@ Extra-source-files: configure
                     libnvvm.buildinfo.in
 
 Library
-  Exposed-modules:  Foreign.LibNVVM.Error
+  Exposed-modules:  Foreign.LibNVVM
                     Foreign.LibNVVM.Compile
-                    Foreign.LibNVVM
+                    Foreign.LibNVVM.Error
+                    Foreign.LibNVVM.Info
   Other-modules:    Foreign.LibNVVM.Internal
+
   Includes:         nvvm.h
   Extra-Libraries:  nvvm
-  GHC-options:      -Wall -O2 -fwarn-tabs
+
+  GHC-options:      -Wall -O2 -fwarn-tabs -funbox-strict-fields
+
   if os(darwin)
     CC-options:     -U__BLOCKS__
+
   Build-tools:      c2hs
-  Build-depends:    base >= 4 && < 5,
-                    bytestring >= 0.9
+  Build-depends:    base                >= 4 && < 5,
+                    bytestring          >= 0.9,
+                    cuda                >= 0.5
+
   Default-language: Haskell2010
+
 
 Test-suite test-simple
   Type:             exitcode-stdio-1.0
