@@ -63,7 +63,8 @@ Test-suite test-simple
   hs-source-dirs:   Test/simple
 
 Test-suite test-llvmgen
-  Buildable:        False       -- Parsing error in datalayout field
+  -- Disable due to a libnvvm parsing error bug of the DataLayout field
+  Buildable:        False
   Type:             exitcode-stdio-1.0
   GHC-options:      -Wall -O2 -fwarn-tabs
   Build-depends:    base >= 4 && < 5,
