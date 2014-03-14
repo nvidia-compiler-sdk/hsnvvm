@@ -10,9 +10,11 @@
 -- Portability : non-portable (GHC extensions)
 --
 module Foreign.LibNVVM (
-  module Foreign.LibNVVM.Info,
+  module Foreign.LibNVVM.Compile,
   module Foreign.LibNVVM.Error,
+  module Foreign.LibNVVM.Info,
 ) where
 
-import Foreign.LibNVVM.Info
+import Foreign.LibNVVM.Compile
 import Foreign.LibNVVM.Error
+import Foreign.LibNVVM.Info
