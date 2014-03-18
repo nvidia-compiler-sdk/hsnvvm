@@ -239,7 +239,7 @@ compilerResult prg = do
   n     <- resultIfOk =<< nvvmGetCompiledResultSize prg
   log   <- B.mallocByteString n
   nothingIfOk =<< nvvmGetCompiledResult prg log
-  return $ B.fromForeignPtr log 0 n
+  return $! B.fromForeignPtr log 0 (n-1) -- size includes the NULL terminator
 
 {-# INLINE nvvmGetCompiledResult #-}
 {# fun unsafe nvvmGetCompiledResult
@@ -265,7 +265,7 @@ compilerLog prg = do
   n     <- resultIfOk =<< nvvmGetProgramLogSize prg
   log   <- B.mallocByteString n
   nothingIfOk =<< nvvmGetProgramLog prg log
-  return $ B.fromForeignPtr log 0 n
+  return $! B.fromForeignPtr log 0 (n-1) -- size includes the NULL terminator
 
 {-# INLINE nvvmGetProgramLog #-}
 {# fun unsafe nvvmGetProgramLog
