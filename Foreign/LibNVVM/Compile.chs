@@ -155,7 +155,7 @@ compileModules modules opts verify =
     log   <- compilerLog prg
     case res of
       Left (err :: NVVMException) -> nvvmError (unlines [show err, B.unpack log])
-      Right ptx                   -> return $ Result log ptx
+      Right ptx                   -> return $! Result log ptx
 
 
 -- The raw interface to libNVVM
