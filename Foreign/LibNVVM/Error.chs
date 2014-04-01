@@ -71,7 +71,7 @@ instance Exception NVVMException
 
 instance Show NVVMException where
   showsPrec n (ExitCode s)  = showsPrec n ("NVVM Exception: " ++ describe s)
-  showsPrec n (UserError s) = showsPrec n s
+  showsPrec _ (UserError s) = showString s
 
 -- | Raise an 'NVVMException' in the IO monad
 --
