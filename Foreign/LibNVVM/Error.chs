@@ -28,8 +28,7 @@ import Foreign.C
 import Foreign.Ptr
 import Foreign.LibNVVM.Internal
 
-#include <nvvm.h>
-
+#include "cbits/stubs.h"
 {# context lib = "nvvm" #}
 
 -- |

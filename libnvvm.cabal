@@ -24,6 +24,7 @@ Extra-source-files: configure
                     config.sub
                     install-sh
                     libnvvm.buildinfo.in
+                    cbits/stubs.h
 
 Library
   Exposed-modules:  Foreign.LibNVVM
@@ -32,6 +33,7 @@ Library
                     Foreign.LibNVVM.Info
   Other-modules:    Foreign.LibNVVM.Internal
 
+  Include-dirs:     .
   Includes:         nvvm.h
   Extra-Libraries:  nvvm
 

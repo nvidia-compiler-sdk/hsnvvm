@@ -41,8 +41,7 @@ import Foreign.CUDA.Analysis
 import Foreign.LibNVVM.Error
 import Foreign.LibNVVM.Internal
 
-#include <nvvm.h>
-
+#include "cbits/stubs.h"
 {# context lib="nvvm" #}
 
 
