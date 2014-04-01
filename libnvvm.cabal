@@ -4,7 +4,7 @@ License:            OtherLicense
 License-file:       LICENSE
 Author:             Sean Lee <selee@nvidia.com>
 Maintainer:         Sean Lee <selee@nvidia.com>
-Build-type:         Custom
+Build-type:         Simple
 Category:           Foreign
 Stability:          experimental
 Bug-reports:        mailto:selee@nvidia.com
@@ -13,72 +13,83 @@ Tested-with:        GHC == 7.0.3
 Synopsis:           FFI binding to libNVVM, a compiler SDK component from NVIDIA
 Description:        FFI binding to libNVVM, a compiler SDK component from NVIDIA
 
-Extra-tmp-files:    libnvvm.buildinfo
-                    config.status
-                    config.log
-                    autom4te.cache
-
-Extra-source-files: configure
-                    configure.ac
-                    config.guess
-                    config.sub
-                    install-sh
-                    libnvvm.buildinfo.in
-                    cbits/stubs.h
+Extra-source-files: cbits/stubs.h
 
 Library
-  Exposed-modules:  Foreign.LibNVVM
-                    Foreign.LibNVVM.Compile
-                    Foreign.LibNVVM.Error
-                    Foreign.LibNVVM.Info
-  Other-modules:    Foreign.LibNVVM.Internal
+  Exposed-modules:
+    Foreign.LibNVVM
+    Foreign.LibNVVM.Compile
+    Foreign.LibNVVM.Error
+    Foreign.LibNVVM.Info
 
-  Include-dirs:     .
-  Includes:         nvvm.h
-  Extra-Libraries:  nvvm
+  Other-modules:
+    Foreign.LibNVVM.Internal
 
-  GHC-options:      -Wall -O2 -fwarn-tabs -funbox-strict-fields
+  Include-dirs:                 .
+  Includes:                     nvvm.h
+  Extra-Libraries:              nvvm
 
   if os(darwin)
-    CC-options:     -U__BLOCKS__
+    CC-options:                 -U__BLOCKS__
+    Include-dirs:               /usr/local/cuda/nvvm/include
+    Extra-lib-dirs:             /usr/local/cuda/nvvm/lib
 
-  Build-tools:      c2hs
-  Build-depends:    base                >= 4 && < 5,
-                    bytestring          >= 0.9,
-                    cuda                >= 0.5
+  if os(linux)
+    Include-dirs:               /usr/local/cuda/nvvm/include
+
+    if arch(i386)
+      Extra-lib-dirs:           /usr/local/cuda/nvvm/lib
+
+    if arch(x86_64)
+      Extra-lib-dirs:           /usr/local/cuda/nvvm/lib64
+
+  GHC-options:                  -Wall -O2 -fwarn-tabs -funbox-strict-fields
+
+  Build-tools:                  c2hs
+  Build-depends:
+    base                        >= 4 && < 5,
+    bytestring                  >= 0.9,
+    cuda                        >= 0.5
 
   Default-language: Haskell2010
 
 
 Test-suite test-simple
-  Type:             exitcode-stdio-1.0
-  GHC-options:      -Wall -O2 -fwarn-tabs
-  Build-depends:    base >= 4 && < 5,
-                    bytestring >= 0.9,
-                    libnvvm,
-                    test-framework >= 0.2,
-                    test-framework-hunit >= 0.2,
-                    Cabal >= 1.10.1,
-                    HUnit >= 1.2
-  Default-language: Haskell2010
-  Main-is:          Simple.hs
-  hs-source-dirs:   Test/simple
+  Main-is:                      Simple.hs
+  hs-source-dirs:               Test/simple
 
-Test-suite test-llvmgen
-  -- Disable due to a libnvvm parsing error bug of the DataLayout field
-  Buildable:        False
-  Type:             exitcode-stdio-1.0
-  GHC-options:      -Wall -O2 -fwarn-tabs
-  Build-depends:    base >= 4 && < 5,
-                    bytestring,
-                    containers,
-                    cuda >= 0.5,
-                    libnvvm,
-                    llvm-general == 3.2.*,
-                    llvm-general-pure == 3.2.*,
-                    mtl
-  Default-language: Haskell2010
-  Main-is:          LLVMGen.hs
-  Other-modules:    HelloWorld
-  hs-source-dirs:   Test/llvm-gen
+  Build-depends:
+    libnvvm,
+    base                        >= 4 && < 5,
+    bytestring                  >= 0.9,
+    test-framework              >= 0.2,
+    test-framework-hunit        >= 0.2,
+    Cabal                       >= 1.10.1,
+    HUnit                       >= 1.2
+
+  Type:                         exitcode-stdio-1.0
+  GHC-options:                  -Wall -O2 -fwarn-tabs
+  Default-language:             Haskell2010
+
+
+-- Disable due to a libnvvm parsing error bug of the DataLayout field
+--
+-- Test-suite test-llvmgen
+--   Main-is:              LLVMGen.hs
+--   Other-modules:        HelloWorld
+--   hs-source-dirs:       Test/llvm-gen
+--
+--   Build-depends:
+--     libnvvm,
+--     base                        >= 4 && < 5,
+--     bytestring                  >= 0.9,
+--     containers                  >= 0.5,
+--     cuda                        >= 0.5,
+--     llvm-general                == 3.2.*,
+--     llvm-general-pure           == 3.2.*,
+--     mtl                         >= 2.0
+--
+--   Type:                 exitcode-stdio-1.0
+--   GHC-options:          -Wall -O2 -fwarn-tabs
+--   Default-language:     Haskell2010
 
