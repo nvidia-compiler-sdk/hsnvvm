@@ -92,7 +92,7 @@ Test-suite test-simple
   Default-language:             Haskell2010
 
 
--- Disable due to a libnvvm parsing error bug of the DataLayout field
+-- Disable due to a libNVVM parsing error bug of the DataLayout field
 --
 -- Test-suite test-llvmgen
 --   Main-is:              LLVMGen.hs
