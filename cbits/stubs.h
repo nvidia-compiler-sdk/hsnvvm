@@ -17,5 +17,4 @@
  */
 #include <nvvm.h>
 
-#endif // C_STUBS_H
-
+#endif /* C_STUBS_H */
