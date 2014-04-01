@@ -23,9 +23,8 @@
 -- SOFTWARE.
 -- |
 -- Module      : Foreign.LibNVVM.Compile
--- Copyright   : 2012 Sean Lee
---               2014 Trevor L. McDonell
--- License     :
+-- Copyright   : NVIDIA Corporation
+-- License     : MIT
 --
 -- Maintainer  : Sean Lee <selee@nvidia.com>
 -- Stability   : experimental
