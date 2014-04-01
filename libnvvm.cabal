@@ -18,32 +18,33 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 
-Name:               libnvvm
-Version:            1.0.0
-License:            MIT
-License-file:       LICENSE
-Author:             Sean Lee <selee@nvidia.com>
-Maintainer:         Sean Lee <selee@nvidia.com>
-Build-type:         Simple
-Category:           Foreign
-Stability:          experimental
-Bug-reports:        mailto:selee@nvidia.com
-Cabal-version:      >= 1.10
-Tested-with:        GHC == 7.0.3
-Synopsis:           FFI binding to libNVVM, a compiler SDK component from NVIDIA
-Description:        FFI binding to libNVVM, a compiler SDK component from NVIDIA
+Name:                           libnvvm
+Version:                        1.0.0
+License:                        MIT
+License-file:                   LICENSE
+Copyright:                      Copyright (c) 2012-2014 NVIDIA Corporation.  All rights reserved.
+Author:                         Sean Lee,
+                                Trevor McDonell
+Maintainer:                     Sean Lee <selee@nvidia.com>
+Build-type:                     Simple
+Category:                       Foreign
+Stability:                      Experimental
+Homepage:                       https://github.com/nvidia-compiler-sdk/hsnvvm
+Bug-reports:                    https://github.com/nvidia-compiler-sdk/hsnvvm/issues
+Cabal-version:                  >= 1.18
+Tested-with:                    GHC == 7.6.*
+Synopsis:                       FFI binding to libNVVM, a compiler SDK component from NVIDIA
+Description:                    FFI binding to libNVVM, a compiler SDK component from NVIDIA
 
-Extra-source-files: cbits/stubs.h
+Extra-source-files:             cbits/stubs.h
 
 Library
-  Exposed-modules:
-    Foreign.LibNVVM
-    Foreign.LibNVVM.Compile
-    Foreign.LibNVVM.Error
-    Foreign.LibNVVM.Info
+  Exposed-modules:              Foreign.LibNVVM
+                                Foreign.LibNVVM.Compile
+                                Foreign.LibNVVM.Error
+                                Foreign.LibNVVM.Info
 
-  Other-modules:
-    Foreign.LibNVVM.Internal
+  Other-modules:                Foreign.LibNVVM.Internal
 
   Include-dirs:                 .
   Includes:                     nvvm.h
@@ -66,26 +67,24 @@ Library
   GHC-options:                  -Wall -O2 -fwarn-tabs -funbox-strict-fields
 
   Build-tools:                  c2hs
-  Build-depends:
-    base                        >= 4 && < 5,
-    bytestring                  >= 0.9,
-    cuda                        >= 0.5
+  Build-depends:                base                        >= 4 && < 5,
+                                bytestring                  >= 0.9,
+                                cuda                        >= 0.5
 
-  Default-language: Haskell2010
+  Default-language:             Haskell2010
 
 
 Test-suite test-simple
   Main-is:                      Simple.hs
   hs-source-dirs:               Test/simple
 
-  Build-depends:
-    libnvvm,
-    base                        >= 4 && < 5,
-    bytestring                  >= 0.9,
-    test-framework              >= 0.2,
-    test-framework-hunit        >= 0.2,
-    Cabal                       >= 1.10.1,
-    HUnit                       >= 1.2
+  Build-depends:                libnvvm,
+                                base                        >= 4 && < 5,
+                                bytestring                  >= 0.9,
+                                test-framework              >= 0.2,
+                                test-framework-hunit        >= 0.2,
+                                Cabal                       >= 1.10.1,
+                                HUnit                       >= 1.2
 
   Type:                         exitcode-stdio-1.0
   GHC-options:                  -Wall -O2 -fwarn-tabs
@@ -95,21 +94,23 @@ Test-suite test-simple
 -- Disable due to a libNVVM parsing error bug of the DataLayout field
 --
 -- Test-suite test-llvmgen
---   Main-is:              LLVMGen.hs
---   Other-modules:        HelloWorld
---   hs-source-dirs:       Test/llvm-gen
+--   Main-is:                     LLVMGen.hs
+--   Other-modules:               HelloWorld
+--   hs-source-dirs:              Test/llvm-gen
 --
---   Build-depends:
---     libnvvm,
---     base                        >= 4 && < 5,
---     bytestring                  >= 0.9,
---     containers                  >= 0.5,
---     cuda                        >= 0.5,
---     llvm-general                == 3.2.*,
---     llvm-general-pure           == 3.2.*,
---     mtl                         >= 2.0
+--   Build-depends:               libnvvm,
+--                                base                        >= 4 && < 5,
+--                                bytestring                  >= 0.9,
+--                                containers                  >= 0.5,
+--                                cuda                        >= 0.5,
+--                                llvm-general                == 3.2.*,
+--                                llvm-general-pure           == 3.2.*,
+--                                mtl                         >= 2.0
 --
---   Type:                 exitcode-stdio-1.0
---   GHC-options:          -Wall -O2 -fwarn-tabs
---   Default-language:     Haskell2010
+--   Type:                        exitcode-stdio-1.0
+--   GHC-options:                 -Wall -O2 -fwarn-tabs
+--   Default-language:            Haskell2010
 
+Source-repository head
+  Type:                         git
+  Location:                     https://github.com/nvidia-compiler-sdk/hsnvvm.git
