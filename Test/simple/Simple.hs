@@ -21,18 +21,23 @@
 module Main (main) where
 
 import Foreign.LibNVVM
-import Test.Framework.Providers.HUnit (testCase)
-import Test.HUnit hiding (Test)
 
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as B8
-import qualified Test.Framework as TF (Test, defaultMain, testGroup)
+import Control.Monad
+import Control.Exception
+import Text.Printf
+import Test.HUnit                                       hiding (Test)
+import Test.Framework.Providers.HUnit                   (testCase)
+
+import qualified Data.ByteString                        as B
+import qualified Data.ByteString.Char8                  as B8
+import qualified Test.Framework                         as TF (Test, defaultMain, testGroup)
 
 main :: IO ()
 main = TF.defaultMain tests
 
 tests :: [TF.Test]
-tests = [ TF.testGroup "Positive tests"
+tests =
+  [ TF.testGroup "Positive tests"
           [ testCase "compile HelloWorld.ll"
                      pCompileHelloWorldLL
           , testCase "compile HelloWorld.bc"
@@ -44,7 +49,7 @@ tests = [ TF.testGroup "Positive tests"
           , testCase "compile multiple .ll and .bc files"
                      pCompileMultipleLLBC
           ]
-        , TF.testGroup "Negative tests"
+  , TF.testGroup "Negative tests"
           [ testCase "compile HelloWorldWithError.ll"
                      nCompileHelloWorldWithErrorLL
           , testCase "compile multiple .ll files with redefinitions"
@@ -54,26 +59,47 @@ tests = [ TF.testGroup "Positive tests"
           , testCase "compile multiple .ll and .bc files with redefinitions"
                      nCompileMultipleLLBC
           ]
-        ]
+  ]
+
+
+assertRaises
+    :: (Exception e, Show e, Eq e)
+    => String
+    -> e
+    -> IO a
+    -> Assertion
+assertRaises msg selector action =
+  let testErr e
+        | e == selector = return ()
+        | otherwise     = assertFailure $ printf "%s\nReceived unexpected exception: %s\ninstead of exception: %s"
+                                                 msg (show e) (show selector)
+  in do
+    r <- try action
+    case r of
+      Left e  -> testErr e
+      Right _ -> assertFailure $ printf "%s\nReceived no exception, but was expecting: %s" msg (show selector)
+
+
+-- Compilation actually returns a UserError so that the compilation error
+-- message is returned as part of the string. The first line of the error
+-- message does contain the Status error string, however, so just compare that.
+--
+instance Eq NVVMException where
+  s == t = head (lines (show s)) == head (lines (show t))
+
 
 -- Positive tests
 -- --------------
 
-assertSuccess :: Result -> Assertion
-assertSuccess (Result _ (Right _)) = return ()
-assertSuccess (Result _ (Left e))  = assertFailure (show e)
-
-
 pCompileHelloWorldLL :: Assertion
 pCompileHelloWorldLL = do
-  ll <- B8.readFile "Test/data/HelloWorld.ll"
-  r  <- compileModule ll "compileLL" []
-  assertSuccess r
+  ll   <- B8.readFile "Test/data/HelloWorld.ll"
+  void $! compileModule "compileLL" ll [] True
 
 pCompileHelloWorldBC :: Assertion
 pCompileHelloWorldBC = do
-  bc <- B.readFile "Test/data/HelloWorld.bc"
-  assertSuccess =<< compileModule bc "compileBC" []
+  bc   <- B.readFile "Test/data/HelloWorld.bc"
+  void $! compileModule "compileBC" bc [] True
 
 pCompileMultipleLL :: Assertion
 pCompileMultipleLL = do
@@ -82,8 +108,7 @@ pCompileMultipleLL = do
                           , "Test/data/HelloWorld2.ll"
                           , "Test/data/HelloWorld3.ll"
                           ]
-  r   <- compileModules (zip lls (repeat "compileMultipleLL")) []
-  assertSuccess r
+  void $! compileModules (zip (repeat "compileMultipleLL") lls) [] True
 
 pCompileMultipleBC :: Assertion
 pCompileMultipleBC = do
@@ -92,8 +117,7 @@ pCompileMultipleBC = do
                          , "Test/data/HelloWorld2.bc"
                          , "Test/data/HelloWorld3.bc"
                          ]
-  r   <- compileModules (zip bcs (repeat "compileMultipleBC")) []
-  assertSuccess r
+  void $! compileModules (zip (repeat "compileMultipleBC") bcs) [] True
 
 pCompileMultipleLLBC :: Assertion
 pCompileMultipleLLBC = do
@@ -102,45 +126,39 @@ pCompileMultipleLLBC = do
                     , B8.readFile "Test/data/HelloWorld2.ll"
                     , B.readFile  "Test/data/HelloWorld3.bc"
                     ]
-  r     <- compileModules (zip llbcs (repeat "compileMultipleLLBC")) []
-  assertSuccess r
-
+  void $! compileModules (zip (repeat "compileMultipleLLBC") llbcs) [] True
 
 -- Negative tests
 -- --------------
 
-assertError :: Result -> Assertion
-assertError (Result _ (Left ErrorCompilation)) = return ()
-assertError (Result _ (Left e))                = ErrorCompilation @=? e
-assertError (Result _ (Right _))               = ErrorCompilation @=? Success
+compilationError :: IO Result -> Assertion
+compilationError action =
+  assertRaises "Compilation Error" (ExitCode Compilation) action
+
 
 nCompileHelloWorldWithErrorLL :: Assertion
 nCompileHelloWorldWithErrorLL = do
   ll <- B8.readFile "Test/data/HelloWorldWithError.ll"
-  r  <- compileModule ll "errorLL" []
-  assertError r
+  compilationError $ compileModule "errorLL" ll [] True
 
 nCompileMultipleLL :: Assertion
 nCompileMultipleLL = do
   lls <- mapM B8.readFile [ "Test/data/HelloWorld.ll"
                           , "Test/data/HelloWorld.ll"
                           ]
-  r   <- compileModules (zip lls (repeat "errorMultipleLL")) []
-  assertError r
+  compilationError $ compileModules (zip (repeat "errorMultipleLL") lls) [] True
 
 nCompileMultipleBC :: Assertion
 nCompileMultipleBC = do
   bcs <- mapM B.readFile [ "Test/data/HelloWorld.bc"
                          , "Test/data/HelloWorld.bc"
                          ]
-  r   <- compileModules (zip bcs (repeat "errorMultipleBC")) [] 
-  assertError r
+  compilationError $ compileModules (zip (repeat "errorMultipleBC") bcs) [] True
 
 nCompileMultipleLLBC :: Assertion
 nCompileMultipleLLBC = do
   llbcs <- sequence [ B8.readFile "Test/data/HelloWorld.ll"
-                    , B.readFile  "Test/data/HelloWorld.bc"
+                    ,  B.readFile "Test/data/HelloWorld.bc"
                     ]
-  r     <- compileModules (zip llbcs (repeat "errorMultipleLLBC")) []
-  assertError r
+  compilationError $ compileModules (zip (repeat "errorMultipleLLBC") llbcs) [] True
 
