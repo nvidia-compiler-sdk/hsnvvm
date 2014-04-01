@@ -71,7 +71,7 @@ assertRaises
 assertRaises msg selector action =
   let testErr e
         | e == selector = return ()
-        | otherwise     = assertFailure $ printf "%s\nReceived unexpected exception: %s\ninstead of exception: %s"
+        | otherwise     = assertFailure $ printf "%s\nReceived unexpected exception: %s\nInstead of exception: %s"
                                                  msg (show e) (show selector)
   in do
     r <- try action
